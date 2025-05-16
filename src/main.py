@@ -243,7 +243,7 @@ def extract_title(markdown):
             return line[2:].strip()
     raise ValueError("No title found in the markdown")
 
-def generate_page(from_path, template_path,dest_path):
+def generate_page(from_path, template_path,dest_path,basepath):
     print("Generating page...")
     with open(from_path, "r") as f:
         markdown = f.read()
@@ -253,10 +253,12 @@ def generate_page(from_path, template_path,dest_path):
     html_node = markdown_to_html_node(markdown)
     html = template.replace("{{ Title }}", title)
     html = html.replace("{{ Content }}", html_node.to_html())
+    html = html.replace('href="/', f'href="{basepath}')
+    html = html.replace('src="/', f'src="{basepath}')
     with open(dest_path, "w") as f:
         f.write(html)
 
-def generate_page_recursively(from_path, template_path,dest_path):
+def generate_page_recursively(from_path, template_path,dest_path,basepath):
     import os
     import shutil
     print("Generating page recursively...")
@@ -266,14 +268,20 @@ def generate_page_recursively(from_path, template_path,dest_path):
         s = os.path.join(from_path, item)
         d = os.path.join(dest_path, item)
         if os.path.isdir(s):
-            generate_page_recursively(s, template_path, d)
+            generate_page_recursively(s, template_path, d,basepath)
         else:
             if item.endswith(".md"):
-                generate_page(s, template_path, d.replace(".md", ".html"))
+                generate_page(s, template_path, d.replace(".md", ".html"),basepath)
             else:
                 shutil.copy2(s, d)
 def main():
+    import sys
+    if len(sys.argv) < 2:
+        basepath = "/"
+    else:
+        basepath = sys.argv[1]
+    
     copy_directory_recursively("static", "public")
-    generate_page_recursively("content/", "template.html", "public/")
+    generate_page_recursively("content/", "template.html", "docs/",basepath )
 
 main()
